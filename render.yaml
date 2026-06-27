@@ -3,7 +3,7 @@ services:
     name: piqhub
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run build && npm run init
     startCommand: npm start
     envVars:
       - key: TURSO_DATABASE_URL
