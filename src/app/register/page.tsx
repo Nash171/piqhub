@@ -7,7 +7,7 @@ import { registerUser } from '@/lib/actions';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import { Card, CardTitle } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
 
 export default function RegisterPage() {

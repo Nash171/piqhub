@@ -75,7 +75,7 @@ export async function registerForEventLogic(userId: number, eventId: number): Pr
 
   await db.execute({
     sql: 'INSERT INTO event_registrations (event_id, user_id, coins, status) VALUES (?, ?, ?, ?)',
-    args: [eventId, userId, 1000, 'pending'],
+    args: [eventId, userId, 1000, 'confirmed'],
   });
 }
 

@@ -83,6 +83,25 @@ export const resetPasswordSchema = z.object({
   newPassword: z.string().min(6),
 });
 
+export const updateUserSchema = z.object({
+  userId: z.coerce.number().int().positive(),
+  username: z.string().min(3).max(32),
+  newPassword: z.string().optional(),
+  confirmPassword: z.string().optional(),
+}).refine((data) => {
+  if (!data.newPassword || data.newPassword.length === 0) return true;
+  return data.newPassword.length >= 6;
+}, {
+  message: 'Password must be at least 6 characters',
+  path: ['newPassword'],
+}).refine((data) => {
+  if (!data.newPassword || data.newPassword.length === 0) return true;
+  return data.newPassword === data.confirmPassword;
+}, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
 export const resetWinnerSchema = z.object({
   matchId: z.coerce.number().int().positive(),
 });
@@ -105,5 +124,6 @@ export type SetWinnerInput = z.infer<typeof setWinnerSchema>;
 export type PlaceBetInput = z.infer<typeof placeBetSchema>;
 export type UpdateBetInput = z.infer<typeof updateBetSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type ResetWinnerInput = z.infer<typeof resetWinnerSchema>;
 export type RecalculateEventInput = z.infer<typeof recalculateEventSchema>;

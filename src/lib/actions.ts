@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getUserByUsername, getUserWithPassword, verifyPassword } from './auth';
-import { getSession, setSession, destroySession, requireAdmin, requireAuth } from './session';
+import { setSession, destroySession, requireAdmin, requireAuth } from './session';
 import {
   loginSchema,
   registerSchema,
@@ -19,6 +19,7 @@ import {
   placeBetSchema,
   updateBetSchema,
   resetPasswordSchema,
+  updateUserSchema,
   resetWinnerSchema,
   recalculateEventSchema,
 } from './validators';
@@ -40,8 +41,17 @@ import {
   recalculateEventPointsLogic,
 } from './betting';
 import { getMatchById } from './queries';
-import { createUser } from './auth';
+import { createUser, updateUser as updateUserInDb } from './auth';
 import { ActionResult } from './types';
+
+function parseAdminLocalDateTime(value: string, timezoneOffset: number): string {
+  const [datePart, timePart] = value.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute] = timePart.split(':').map(Number);
+  const localMs = Date.UTC(year, month - 1, day, hour, minute);
+  const utcMs = localMs + timezoneOffset * 60 * 1000;
+  return new Date(utcMs).toISOString();
+}
 
 export async function registerUser(formData: FormData): Promise<ActionResult> {
   const data = Object.fromEntries(formData);
@@ -175,7 +185,9 @@ export async function createMatch(formData: FormData): Promise<ActionResult> {
   }
 
   try {
-    await createMatchLogic(parsed.data.eventId, parsed.data.teamA, parsed.data.teamB, parsed.data.matchTime);
+    const timezoneOffset = parseInt(String(data.timezoneOffset), 10) || 0;
+    const matchTime = parseAdminLocalDateTime(parsed.data.matchTime, timezoneOffset);
+    await createMatchLogic(parsed.data.eventId, parsed.data.teamA, parsed.data.teamB, matchTime);
     revalidatePath('/admin/matches');
     revalidatePath(`/events/${parsed.data.eventId}`);
     return { success: true, message: 'Match created' };
@@ -194,7 +206,12 @@ export async function updateMatch(formData: FormData): Promise<ActionResult> {
 
   try {
     const match = await getMatchById(parsed.data.matchId);
-    await updateMatchLogic(parsed.data.matchId, parsed.data.teamA, parsed.data.teamB, parsed.data.matchTime);
+    const timezoneOffset = parseInt(String(data.timezoneOffset), 10) || 0;
+    const isExistingUtc = match?.match_time.endsWith('Z') ?? false;
+    const matchTime = isExistingUtc
+      ? parseAdminLocalDateTime(parsed.data.matchTime, timezoneOffset)
+      : parsed.data.matchTime;
+    await updateMatchLogic(parsed.data.matchId, parsed.data.teamA, parsed.data.teamB, matchTime);
     revalidatePath('/admin/matches');
     revalidatePath(`/matches/${parsed.data.matchId}`);
     if (match) {
@@ -305,6 +322,28 @@ export async function resetUserPassword(formData: FormData): Promise<ActionResul
     return { success: true, message: 'Password reset' };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to reset password' };
+  }
+}
+
+export async function updateUser(formData: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const data = Object.fromEntries(formData);
+  const parsed = updateUserSchema.safeParse(data);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
+  try {
+    const newPassword = parsed.data.newPassword && parsed.data.newPassword.length > 0 ? parsed.data.newPassword : undefined;
+    const updated = await updateUserInDb(parsed.data.userId, parsed.data.username, newPassword);
+    if (admin.id === parsed.data.userId) {
+      await setSession({ user: { id: updated.id, username: updated.username, role: updated.role } });
+    }
+    revalidatePath('/admin/users');
+    revalidatePath('/events');
+    return { success: true, message: 'User updated' };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to update user' };
   }
 }
 

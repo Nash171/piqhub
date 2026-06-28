@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getMatchById, getRegistration, getBetForMatch, getBetsForMatch } from '@/lib/queries';
+import { getMatchById, getRegistration, getBetForMatch, getBetsForMatchWithUsernames } from '@/lib/queries';
 import { placeBet, updateBet } from '@/lib/actions';
 import { calculateBetResult } from '@/lib/betting';
 import { getSession } from '@/lib/session';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { LocalTime } from '@/components/LocalTime';
 import { notFound } from 'next/navigation';
 
 interface Props {
@@ -28,7 +29,8 @@ export default async function MatchDetailPage({ params }: Props) {
 
   const registration = session.user ? await getRegistration(match.event_id, session.user.id) : null;
   const myBet = session.user ? await getBetForMatch(matchId, session.user.id) : null;
-  const allBets = isLocked ? await getBetsForMatch(matchId) : [];
+  const canViewAllBets = registration?.status === 'confirmed';
+  const allBets = canViewAllBets ? await getBetsForMatchWithUsernames(matchId) : [];
   const myBetResult = myBet ? calculateBetResult(myBet, match, allBets) : null;
 
   const statusVariant = match.status === 'completed' ? 'gray' : isLocked ? 'yellow' : 'green';
@@ -53,7 +55,7 @@ export default async function MatchDetailPage({ params }: Props) {
               {match.team_a} vs {match.team_b}
             </CardTitle>
             <CardDescription className="mt-1">
-              Match starts at {matchTime.toLocaleString()}
+              Match starts at <LocalTime iso={match.match_time} />
             </CardDescription>
           </div>
           <Badge variant={statusVariant}>{statusLabel}</Badge>
@@ -191,9 +193,9 @@ export default async function MatchDetailPage({ params }: Props) {
         </Card>
       )}
 
-      {isLocked && allBets.length > 0 && (
+      {canViewAllBets && allBets.length > 0 && (
         <Card className="mt-6">
-          <CardTitle className="mb-5">All Bets</CardTitle>
+          <CardTitle className="mb-5">Bets</CardTitle>
           <div className="overflow-hidden rounded-xl border border-slate-200">
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
@@ -218,7 +220,7 @@ export default async function MatchDetailPage({ params }: Props) {
                   return (
                     <tr key={bet.id}>
                       <td className="px-4 py-3 text-sm font-medium text-slate-900">
-                        Player #{bet.user_id}
+                        {bet.username}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-700">
                         {bet.team_chosen === 'team_a' ? match.team_a : match.team_b}

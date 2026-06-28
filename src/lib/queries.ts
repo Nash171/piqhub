@@ -105,6 +105,21 @@ export async function getBetsForMatch(matchId: number): Promise<Bet[]> {
   return result.rows as unknown as Bet[];
 }
 
+export async function getBetsForMatchWithUsernames(
+  matchId: number
+): Promise<(Bet & { username: string })[]> {
+  const db = getClient();
+  const result = await db.execute({
+    sql: `SELECT b.id, b.match_id, b.user_id, b.team_chosen, b.amount, b.placed_at, u.username
+          FROM bets b
+          JOIN users u ON b.user_id = u.id
+          WHERE b.match_id = ?
+          ORDER BY b.placed_at DESC`,
+    args: [matchId],
+  });
+  return result.rows as unknown as (Bet & { username: string })[];
+}
+
 export async function getBetsByEvent(eventId: number): Promise<Bet[]> {
   const db = getClient();
   const result = await db.execute({

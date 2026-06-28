@@ -37,6 +37,7 @@ export function MatchModal({ isOpen, onClose, mode, match, events }: MatchModalP
         onSuccess={onClose}
       >
         {isEdit && <input type="hidden" name="matchId" value={match?.id} />}
+        <input type="hidden" name="timezoneOffset" defaultValue={String(new Date().getTimezoneOffset())} />
         <div className="space-y-4">
           {!isEdit ? (
             <div>

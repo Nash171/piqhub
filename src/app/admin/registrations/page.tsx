@@ -21,7 +21,7 @@ function registrationStatusBadgeVariant(status: EventRegistrationStatus) {
   }
 }
 
-const statusOptions: EventRegistrationStatus[] = ['pending', 'confirmed', 'rejected', 'blocked'];
+const statusOptions: EventRegistrationStatus[] = ['confirmed', 'blocked'];
 
 export default async function AdminRegistrationsPage() {
   const registrations = await getAllEventRegistrations();
@@ -83,7 +83,7 @@ export default async function AdminRegistrationsPage() {
                           defaultValue={registration.status}
                           className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 transition-all hover:border-slate-300 focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/5"
                         >
-                          {statusOptions.map((status) => (
+                          {[...new Set([registration.status, ...statusOptions])].map((status) => (
                             <option key={status} value={status}>
                               {status.charAt(0).toUpperCase() + status.slice(1)}
                             </option>

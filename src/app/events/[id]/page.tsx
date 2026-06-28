@@ -8,6 +8,7 @@ import { ClientForm } from '@/components/ClientForm';
 import { Button } from '@/components/ui/Button';
 import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { LocalTime } from '@/components/LocalTime';
 import { notFound } from 'next/navigation';
 
 interface Props {
@@ -150,7 +151,7 @@ export default async function EventDetailPage({ params }: Props) {
                         <Badge variant={statusVariant}>{statusLabel}</Badge>
                       </div>
                       <p className="mt-1.5 text-sm text-slate-500">
-                        {new Date(match.match_time).toLocaleString()}
+                        <LocalTime iso={match.match_time} />
                       </p>
                       {match.winner && (
                         <p className="mt-2 text-sm font-semibold text-blue-600">

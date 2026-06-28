@@ -60,3 +60,30 @@ export async function updateUserPassword(userId: number, newPassword: string): P
     args: [passwordHash, userId],
   });
 }
+
+export async function updateUser(userId: number, username: string, newPassword?: string): Promise<User> {
+  const db = getClient();
+  const existing = await getUserByUsername(username);
+  if (existing && existing.id !== userId) {
+    throw new Error('Username already taken');
+  }
+
+  if (newPassword) {
+    const passwordHash = await hashPassword(newPassword);
+    await db.execute({
+      sql: 'UPDATE users SET username = ?, password_hash = ? WHERE id = ?',
+      args: [username, passwordHash, userId],
+    });
+  } else {
+    await db.execute({
+      sql: 'UPDATE users SET username = ? WHERE id = ?',
+      args: [username, userId],
+    });
+  }
+
+  const result = await db.execute({
+    sql: 'SELECT id, username, role, created_at FROM users WHERE id = ?',
+    args: [userId],
+  });
+  return result.rows[0] as unknown as User;
+}
